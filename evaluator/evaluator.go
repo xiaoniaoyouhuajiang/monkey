@@ -89,11 +89,16 @@ func Eval(node ast.Node, env *object.Environment) object.Object {
 		}
 
 		return applyFunction(function, args)
-	
 
 	case *ast.StringLiteral:
 		return &object.String{Value: node.Value}
-	
+
+	case *ast.ArrayLiteral:
+		elements := evalExpressions(node.Elements, env)
+		if len(elements) == 1 && isError(elements[0]) {
+			return elements[0]
+		}
+		return &object.Array{Elements: elements}
 	}
 
 	return nil
@@ -302,7 +307,6 @@ func evalExpressions(
 	return result
 }
 
-
 //闭包的核心实现
 func applyFunction(fn object.Object, args []object.Object) object.Object {
 	switch fn := fn.(type) {
@@ -341,14 +345,13 @@ func unwrapReturnValue(obj object.Object) object.Object {
 	return obj
 }
 
-
 //Pointer comparison doesn’t work for strings，所以没有进行!=,==的编码
 func evalStringInfixExpression(
 	operator string,
 	left, right object.Object,
 ) object.Object {
 	if operator != "+" {
-		return newError("unknown operator: %s %s %s", left.Type(),operator, right.Type())
+		return newError("unknown operator: %s %s %s", left.Type(), operator, right.Type())
 	}
 
 	leftVal := left.(*object.String).Value
